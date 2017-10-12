@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    tools:context="io.zyw.dbclickblocker.MainActivity"
+    android:orientation="vertical"
+    >
+
+  <TextView
+      android:textSize="23dp"
+      android:gravity="center"
+      android:text="I am first activity"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      />
+  <Button
+      android:id="@+id/main_btn_goto_second"
+      android:layout_marginTop="40dp"
+      android:text="Fast Click me!"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      />
+</LinearLayout>
