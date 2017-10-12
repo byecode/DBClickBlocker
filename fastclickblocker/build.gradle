@@ -28,7 +28,7 @@ dependencies {
   compile 'com.android.support:appcompat-v7:26.+'
   testCompile 'junit:junit:4.12'
 }
-
+File _uploadCheckFile = new File(rootProject.projectDir,"upload.gradle")
 if(_uploadCheckFile.exists()){
   apply from: rootProject.getRootDir().getAbsolutePath() + "/upload.gradle"
 }

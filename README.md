@@ -12,3 +12,7 @@ Usage：
    https://github.com/byecode/DBClickBlocker/blob/master/sample/src/main/java/io/zyw/dbclickblocker/MainActivity.java
    
    
+
+  工程引用
+  
+  compile 'io.zyw.os:fastclickblocker:1.1'
