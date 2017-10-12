@@ -11,13 +11,11 @@ import java.util.HashMap;
 /**
  * @author yixia zhangyanwei@yixia.com
  * @version version_code
- * @Copyright (c) 2017 miaopai
- * @Description
- * @date 2017/10/11
  */
 public class DBClickBlocker extends Handler {
   private static final String TAG = "DBClickBlocker";
-  private static final long DOUBLE_CLICK_TIME = 500;
+  private static final long DEFAULT_DOUBLE_CLICK_TIME = 500;
+  private long mMinFastBlockTime = 500;
   private HashMap<Runnable, Long> mClickTimes = new HashMap<>();
   private Handler mOrigHandler = null;
 
@@ -31,39 +29,30 @@ public class DBClickBlocker extends Handler {
 
   private static Field ATTACH_INFO_FIELD;
 
+  public static void apply(Activity activity, long minBlockTime) {
+    try {
+      View decorView = activity.getWindow().getDecorView();
+      apply(decorView, minBlockTime);
+    } catch (Exception e) {
+    }
+  }
+
   public static void apply(Activity activity) {
     try {
       View decorView = activity.getWindow().getDecorView();
-      if (ATTACH_INFO_FIELD == null) {
-        Log.e(TAG, "un support device");
-        return;
-      }
-      ATTACH_INFO_FIELD.setAccessible(true);
-      Object attachInfo = ATTACH_INFO_FIELD.get(decorView);
-      if (attachInfo == null && decorView != null) {
-        decorView.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
-          @Override public void onViewAttachedToWindow(View v) {
-            try {
-              Object _attachInfo = ATTACH_INFO_FIELD.get(v);
-              applyInner(_attachInfo);
-            } catch (Exception e) {
-              e.printStackTrace();
-            }
-          }
-
-          @Override public void onViewDetachedFromWindow(View v) {
-            Log.e(TAG, "remove callback success");
-            v.removeOnAttachStateChangeListener(this);
-          }
-        });
-      } else if (attachInfo != null && decorView != null) {
-        applyInner(attachInfo);
-      }
+      apply(decorView, DEFAULT_DOUBLE_CLICK_TIME);
     } catch (Exception e) {
-      e.printStackTrace();
     }
   }
+
   public static void apply(View view) {
+    try {
+      apply(view, DEFAULT_DOUBLE_CLICK_TIME);
+    } catch (Exception e) {
+    }
+  }
+
+  public static void uninstall(View view) {
     try {
       if (ATTACH_INFO_FIELD == null) {
         Log.e(TAG, "un support device");
@@ -76,7 +65,7 @@ public class DBClickBlocker extends Handler {
           @Override public void onViewAttachedToWindow(View v) {
             try {
               Object _attachInfo = ATTACH_INFO_FIELD.get(v);
-              applyInner(_attachInfo);
+              uninstallInner(_attachInfo);
             } catch (Exception e) {
               e.printStackTrace();
             }
@@ -88,26 +77,92 @@ public class DBClickBlocker extends Handler {
           }
         });
       } else if (attachInfo != null && view != null) {
-        applyInner(attachInfo);
+        uninstallInner(attachInfo);
       }
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
+  public static void uninstall(Activity activity) {
+    try {
+      View decorView = activity.getWindow().getDecorView();
+      uninstall(decorView);
+    } catch (Exception e) {
+    }
+  }
 
-  private static void applyInner(Object attachInfo) throws Exception {
+  public static void apply(View view, final long minBlockTime) {
+    try {
+      if (ATTACH_INFO_FIELD == null) {
+        Log.e(TAG, "un support device");
+        return;
+      }
+      ATTACH_INFO_FIELD.setAccessible(true);
+      Object attachInfo = ATTACH_INFO_FIELD.get(view);
+      if (attachInfo == null && view != null) {
+        view.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+          @Override public void onViewAttachedToWindow(View v) {
+            try {
+              Object _attachInfo = ATTACH_INFO_FIELD.get(v);
+              applyInner(_attachInfo, minBlockTime);
+            } catch (Exception e) {
+              e.printStackTrace();
+            }
+          }
+
+          @Override public void onViewDetachedFromWindow(View v) {
+            Log.e(TAG, "remove callback success");
+            v.removeOnAttachStateChangeListener(this);
+          }
+        });
+      } else if (attachInfo != null && view != null) {
+        applyInner(attachInfo, minBlockTime);
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  private static void applyInner(Object attachInfo, long minBlockTime) throws Exception {
     if (attachInfo != null) {
       Field mHandler = attachInfo.getClass().getDeclaredField("mHandler");
       mHandler.setAccessible(true);
       Handler mAttachInfoHandler = (Handler) mHandler.get(attachInfo);
-      mHandler.set(attachInfo, new DBClickBlocker(mAttachInfoHandler));
-      Log.e(TAG, "install double blocker success !");
+      if(mAttachInfoHandler instanceof DBClickBlocker){
+        ((DBClickBlocker) mAttachInfoHandler).setMinClickTime(minBlockTime);
+        Log.e(TAG, "already install double blocker  !");
+      }else{
+        mHandler.set(attachInfo,
+            new DBClickBlocker(mAttachInfoHandler).setMinClickTime(minBlockTime));
+        Log.e(TAG, "install double blocker success !");
+      }
+    }
+  }
+
+  private static void uninstallInner(Object attachInfo) throws Exception {
+    if (attachInfo != null) {
+      Field mHandler = attachInfo.getClass().getDeclaredField("mHandler");
+      mHandler.setAccessible(true);
+      Handler mAttachInfoHandler = (Handler) mHandler.get(attachInfo);
+      if (mAttachInfoHandler instanceof DBClickBlocker) {
+        mHandler.set(attachInfo, ((DBClickBlocker) mAttachInfoHandler).mOrigHandler);
+      }
+      Log.e(TAG, "uninstall double blocker success !");
     }
   }
 
   public DBClickBlocker(Handler mOrigHandler) {
     this.mOrigHandler = mOrigHandler;
+    setMinClickTime(DEFAULT_DOUBLE_CLICK_TIME);
+  }
+
+  /**
+   * 最低拦截延迟
+   */
+  public DBClickBlocker setMinClickTime(long minClickTime) {
+    mMinFastBlockTime = minClickTime;
+    return this;
   }
 
   @Override public void dispatchMessage(Message msg) {
@@ -123,17 +178,17 @@ public class DBClickBlocker extends Handler {
         msg.getCallback().getClass().getCanonicalName())) {
       long currentTime = System.currentTimeMillis();
       if (mClickTimes.containsKey(msg.getCallback())) {
-        if (currentTime - mClickTimes.get(msg.getCallback()) > DOUBLE_CLICK_TIME) {
+        if (currentTime - mClickTimes.get(msg.getCallback()) > mMinFastBlockTime) {
           //超过双击时间，可以双击
-          Log.e(TAG,"block over time...");
+          Log.e(TAG, "block over time...");
           mClickTimes.put(msg.getCallback(), currentTime);
           return mOrigHandler.sendMessageAtTime(msg, uptimeMillis);
         } else {
-          Log.e(TAG,"block over success...");
+          Log.e(TAG, "block over success...");
           return true;
         }
       } else {
-        Log.e(TAG,"block over new...");
+        Log.e(TAG, "block over new...");
         mClickTimes.put(msg.getCallback(), currentTime);
         return mOrigHandler.sendMessageAtTime(msg, uptimeMillis);
       }

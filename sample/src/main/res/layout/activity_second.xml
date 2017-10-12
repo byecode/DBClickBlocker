@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:gravity="center"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="io.zyw.dbclickblocker.SecondActivity"
+    android:orientation="vertical"
     >
 
   <TextView
@@ -11,4 +13,37 @@
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
       />
-</RelativeLayout>
+  <Button
+      android:id="@+id/second_btn_install_block"
+      android:text="Install block"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      />
+  <Button
+      android:id="@+id/second_btn_uninstall_block"
+      android:text="UnInstall block"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      />
+
+
+  <Button
+      android:id="@+id/second_btn_blocked"
+      android:text="Fast Click Me !"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      />
+
+  <ScrollView
+      android:id="@+id/second_sv_log_container"
+      android:layout_width="match_parent"
+      android:layout_height="280dp"
+      >
+    <TextView
+        android:id="@+id/second_tv_log"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        />
+  </ScrollView>
+
+</LinearLayout>

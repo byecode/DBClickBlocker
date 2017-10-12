@@ -28,3 +28,7 @@ dependencies {
   compile 'com.android.support:appcompat-v7:26.+'
   testCompile 'junit:junit:4.12'
 }
+
+if(_uploadCheckFile.exists()){
+  apply from: rootProject.getRootDir().getAbsolutePath() + "/upload.gradle"
+}
